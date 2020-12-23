@@ -1,28 +1,60 @@
-﻿using PiTung;
+using PiTung;
 using PiTung.Components;
+using PiTung.Console;
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
 using UnityEngine;
-
 public class OversizeLabels : Mod
 {
-    public override string Name => "Oversize Labels";
-    public override string PackageName => "me.jimmy.StretchedLabels";
-    public override string Author => "Iamsodarncool";
-    public override Version ModVersion => new Version("1.0");
+    public override string Name => "Oversize Labels For PiTUNG 2.4.X";
+    public override string PackageName => "me.jimmy.StretchedLabels.PiTUNG2.4.X";
+    public override string Author => "Iamsodarncool, Modified by Ryan";
+    public override Version ModVersion => new Version("1.1");
 
     public override void BeforePatch()
     {
-        ComponentRegistry.CreateNew<CustomLabel>(this, "WidePanelLabel", "Wide Panel Label", CreatePanelLabelOfSize(3, 1));
-        ComponentRegistry.CreateNew<CustomLabel>(this, "TallPanelLabel", "Tall Panel Label", CreatePanelLabelOfSize(1, 3));
-        ComponentRegistry.CreateNew<CustomLabel>(this, "BigPanelLabel", "Big Panel Label", CreatePanelLabelOfSize(2, 2));
+        ComponentRegistry.CreateNew<CustomLabel>("WidePanelLabel", "Wide Panel Label", CreatePanelLabelOfSize(3, 1));
+        ComponentRegistry.CreateNew<CustomLabel>("TallPanelLabel", "Tall Panel Label", CreatePanelLabelOfSize(1, 3));
+        ComponentRegistry.CreateNew<CustomLabel>("BigPanelLabel", "Big Panel Label", CreatePanelLabelOfSize(2, 2));
 
-        // the world is not ready
-        // ComponentRegistry.CreateNew<CustomLabel>("CollosallyWidePanelLabel", "Collosally Wide Panel Label", PanelLabelOfSize(51, 1));
-        // ComponentRegistry.CreateNew<CustomLabel>("CollosallyTallPanelLabel", "Collosally Tall Panel Label", PanelLabelOfSize(1, 51));
+        // This game's sequal has been in devolpment for over 2 years. I hope the world is ready
+        ComponentRegistry.CreateNew<CustomLabel>("CollosallyWidePanelLabel", "Collosally Wide Panel Label", CreatePanelLabelOfSize(51, 1));
+        ComponentRegistry.CreateNew<CustomLabel>("CollosallyTallPanelLabel", "Collosally Tall Panel Label", CreatePanelLabelOfSize(1, 51));
+        // On second thought, the world is still not ready to see this one
         // ComponentRegistry.CreateNew<CustomLabel>("TitanicPanelLabel", "Titanic Panel Label", PanelLabelOfSize(400, 700));
+
+        // add labels from file
+        if (File.Exists($"{Directory.GetCurrentDirectory()}/sizes_l.txt"))
+        {
+            string[] sizes = File.ReadAllLines($"{Directory.GetCurrentDirectory()}/sizes_l.txt");
+            foreach (string size in sizes)
+            {
+                try
+                {
+                    int[] xysize = Array.ConvertAll(size.Split(' '), s => int.Parse(s)); // split the string into a string array at every space and convert that into an int array
+                    ComponentRegistry.CreateNew($"{xysize[0]} x {xysize[1]} PanelLabel", $"{xysize[0]} x {xysize[1]} PanelLabel", CreatePanelLabelOfSize(xysize[0], xysize[1]));
+                }
+                catch (Exception ex) // Catches all exceptions
+                {
+                    if (ex is ArgumentException)
+                    {
+                        IGConsole.Log($"Error! Cant load label of size {size} twice");
+                    }
+                    else
+                    {
+                        IGConsole.Log($"Error! Cant load label of size {size}, correct format is \"{{X size of label}} {{Y size of label}}\" ");
+                    }
+                }
+            }
+        }
+        Shell.RegisterCommand<Add_Label>();
+        Shell.RegisterCommand<Remove_Label>();
     }
 
-    private static CustomBuilder CreatePanelLabelOfSize(int x, int z)
+    public static CustomBuilder CreatePanelLabelOfSize(int x, int z)
     {
         return PrefabBuilder
             .Custom(() =>
@@ -67,5 +99,101 @@ public class OversizeLabels : Mod
 
                 return obj;
             });
+    }
+}
+
+public class Add_Label : Command
+{
+    public override string Name => "addLabel";
+    public override string Usage => $"{Name} x_size y_size";
+    public override string Description => "Adds a Label of specified size to the component list";
+
+    public override bool Execute(IEnumerable<string> args)
+    {
+        if (args.Count() < 2)
+        {
+            IGConsole.Log("Not enough arguments!");
+            return false;
+        }
+        string size = string.Join(" ", args.ToArray()); //turns the array into a string
+        try
+        {
+            int[] xysize = Array.ConvertAll(size.Split(' '), s => int.Parse(s)); // split the string into a string array at every space and convert that into an int array
+            ComponentRegistry.CreateNew($"{xysize[0]} x {xysize[1]} PanelLabel", $"{xysize[0]} x {xysize[1]} PanelLabel", OversizeLabels.CreatePanelLabelOfSize(xysize[0], xysize[1]));
+        }
+        catch (Exception ex) // Catches all exceptions
+        {
+            if (ex is ArgumentException)
+            {
+                IGConsole.Log($"Error! Cant make Label of size {size}, It already exists!");
+            }
+            else
+            {
+                IGConsole.Log($"Error! Cant make Label of size {size}, correct format is \"{{X size of Label}} {{Y size of Label}}\" ");
+            }
+            return false;
+        }
+        string[] file = { };
+        if (File.Exists($"{Directory.GetCurrentDirectory()}/sizes_l.txt"))
+        {
+            file = File.ReadAllLines($"{Directory.GetCurrentDirectory()}/sizes_l.txt");
+        }
+        List<string> list = new List<string>();
+        list.AddRange(file);
+        list.AddRange(new string[] { size });
+        file = list.ToArray();
+        File.WriteAllLines($"{Directory.GetCurrentDirectory()}/sizes_l.txt", file);
+        IGConsole.Log($"Added Label of size {size} to component list");
+        return true;
+    }
+}
+
+public class Remove_Label : Command
+{
+    public override string Name => "removeLabel";
+    public override string Usage => $"{Name} x_size y_size";
+    public override string Description => "removes a Label of specified size to the component list";
+
+    public override bool Execute(IEnumerable<string> args)
+    {
+        if (args.Count() < 2)
+        {
+            IGConsole.Log("Not enough arguments!");
+            return false;
+        }
+        string size = string.Join(" ", args.ToArray()); //turns the array into a string
+        try
+        {
+            int[] xysize = Array.ConvertAll(size.Split(' '), s => int.Parse(s)); // split the string into a string array at every space and convert that into an int array
+        }
+        catch (Exception ex) // Catches all exceptions
+        {
+            IGConsole.Log($"Error! Cant remove Label of size {size}, correct format is \"{{X size of Label}} {{Y size of Label}}\" ");
+            return false;
+        }
+        string[] file = { };
+        if (File.Exists($"{Directory.GetCurrentDirectory()}/sizes_l.txt"))
+        {
+            file = File.ReadAllLines($"{Directory.GetCurrentDirectory()}/sizes_l.txt");
+            if (file.Contains(size))
+            {
+                List<string> fileList = file.ToList();
+                fileList.Remove(size);
+                file = fileList.ToArray();
+            }
+            else
+            {
+                IGConsole.Log($"Error! Cant remove Label of size {size}, It doesn't exist!");
+                return false;
+            }
+            File.WriteAllLines($"{Directory.GetCurrentDirectory()}/sizes_l.txt", file);
+        }
+        else
+        {
+            IGConsole.Log($"Error! Cant remove Label of size {size}, There are no custom Labels to delete!");
+            return false;
+        }
+        IGConsole.Log($"Reomved Label of size {size} from component list. NOTE: this change will only take effect when you restart your game!!!");
+        return true;
     }
 }
