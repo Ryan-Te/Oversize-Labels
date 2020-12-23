@@ -1,10 +1,9 @@
-﻿using PiTung.Components;
+using PiTung.Components;
 
 class CustomLabel : UpdateHandler
 {
     protected override void CircuitLogicUpdate()
     {
-        UnityEngine.Debug.Log("send nudes");
     }
 
     private Label DaRealLabel;
