@@ -1,6 +1,8 @@
 # Oversize Labels
 A mod for The Ultimate Nerd Game using the PiTUNG framework. Adds some larger labels.
 
+Modifed by Ryan to add support for PiTUNG 2.4.X and make it eaiser to add more labels
+
 To use:  
 First, get The Ultimate Nerd Game: https://iamsodarncool.itch.io/tung  
 Then, install PiTUNG: https://github.com/pipe01/pitung#pitung  
